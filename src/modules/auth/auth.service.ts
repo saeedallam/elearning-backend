@@ -91,24 +91,67 @@ export class AuthService {
   }
 
   private async issueTokens(userId: string, email: string, role: Role) {
+    const accessSecret = process.env.JWT_ACCESS_SECRET;
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
+    const accessExpiresIn =
+      process.env.JWT_ACCESS_EXPIRES_IN ?? "15m";
+    const refreshExpiresIn =
+      process.env.JWT_REFRESH_EXPIRES_IN ?? "7d";
+
+    if (!accessSecret || !refreshSecret) {
+      throw new Error(
+        "JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be configured",
+      );
+    }
+
     const accessToken = await this.jwt.signAsync(
       { sub: userId, email, role },
       {
-        secret: process.env.JWT_ACCESS_SECRET ?? "local-access",
-        expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN ?? "15m") as JwtSignOptions["expiresIn"],
+        secret: accessSecret,
+        expiresIn: accessExpiresIn as JwtSignOptions["expiresIn"],
       },
     );
+
     const refreshToken = await this.jwt.signAsync(
       { sub: userId, type: "refresh" },
       {
-        secret: process.env.JWT_REFRESH_SECRET ?? "local-refresh",
-        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? "7d") as JwtSignOptions["expiresIn"],
+        secret: refreshSecret,
+        expiresIn: refreshExpiresIn as JwtSignOptions["expiresIn"],
       },
     );
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const refreshExpiresAt = this.parseDuration(refreshExpiresIn);
+
     await this.prisma.refreshToken.create({
-      data: { tokenHash: this.hash(refreshToken), userId, expiresAt },
+      data: {
+        tokenHash: this.hash(refreshToken),
+        userId,
+        expiresAt: new Date(Date.now() + refreshExpiresAt),
+      },
     });
+
     return { accessToken, refreshToken };
+  }
+
+  private parseDuration(value: string): number {
+    const match = value.trim().match(/^(\d+)([smhd])$/i);
+
+    if (!match) {
+      throw new Error(
+        `Unsupported JWT refresh duration: ${value}. Use formats such as 15m, 1h, 7d, or 30s.`,
+      );
+    }
+
+    const amount = Number(match[1]);
+    const unit = match[2].toLowerCase();
+
+    const multipliers: Record<string, number> = {
+      s: 1000,
+      m: 60 * 1000,
+      h: 60 * 60 * 1000,
+      d: 24 * 60 * 60 * 1000,
+    };
+
+    return amount * multipliers[unit];
   }
 }
