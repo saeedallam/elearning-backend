@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Prisma } from '@prisma/client';
 import { ConflictException } from '@nestjs/common';
 import { EnrollmentsService } from '../src/modules/enrollments/enrollments.service';

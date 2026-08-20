@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ProgressService } from '../src/modules/progress/progress.service';
 
 describe('ProgressService', () => {

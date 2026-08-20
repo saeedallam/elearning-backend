@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CourseStatus, Role } from '@prisma/client';
 import { CoursesService } from '../src/modules/courses/courses.service';
 

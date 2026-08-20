@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { validateEnv } from './config/env.validation';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { BullModule } from '@nestjs/bullmq';
@@ -16,10 +15,11 @@ import { ProgressModule } from './modules/progress/progress.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { UsersModule } from './modules/users/users.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     JwtModule.register({}),
     BullModule.forRootAsync({ imports: [ConfigModule], inject: [ConfigService], useFactory: (config: ConfigService) => ({ connection: { url: config.get<string>('REDIS_URL', 'redis://localhost:6379') } }) }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),

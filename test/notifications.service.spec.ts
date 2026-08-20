@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NotificationsService } from '../src/modules/notifications/notifications.service';
 
 describe('NotificationsService', () => {
