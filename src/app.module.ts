@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { validateEnv } from './config/env.validation';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { BullModule } from '@nestjs/bullmq';
