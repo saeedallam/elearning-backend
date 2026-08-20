@@ -1,173 +1,337 @@
-# E-Learning Platform Backend
+# E-Learning Backend
 
-A production-style REST API for an e-learning platform built with NestJS, TypeScript, PostgreSQL, Prisma and Redis.
+A modular RESTful backend for an e-learning platform built with **NestJS, TypeScript, PostgreSQL, Prisma, Redis, and BullMQ**.
 
-> Portfolio project. Performance metrics are not claimed unless they are measured and reproducible.
+The project focuses on secure authentication, role-based access control, course management, enrollment, learning progress, reviews, caching, and asynchronous notifications.
 
 ## Features
 
-- JWT authentication with access/refresh tokens
-- Role-based access control (Student, Instructor, Admin)
-- Course, section and lesson management
-- Enrollment and progress tracking
-- Course reviews and ratings
-- Redis caching and notification cache invalidation
-- BullMQ background notification jobs backed by Redis
-- Rate limiting with NestJS Throttler
-- Swagger/OpenAPI documentation
-- PostgreSQL + Prisma migrations and seed data
-- Docker Compose for app, PostgreSQL and Redis
-- Unit-test foundation and GitHub Actions CI
-- Helmet, CORS, validation and centralized guards
+### Authentication & Authorization
+
+* User registration and login
+* Password hashing with bcrypt
+* JWT access and refresh tokens
+* Refresh-token rotation and revocation
+* Logout support
+* Role-based access control
+* Roles:
+
+  * Student
+  * Instructor
+  * Admin
+* Protected routes
+* Startup environment validation
+
+### Courses
+
+* Create, update, publish, and delete courses
+* Course ownership authorization
+* Public access to published courses only
+* Pagination
+* Search
+* Category filtering
+* Sections and lessons management
+* Section reordering
+* Lesson reordering
+
+### Enrollment
+
+* Enroll in published courses
+* Database-level duplicate enrollment protection
+* User enrollment listing
+* Enrollment ownership checks
+
+### Progress Tracking
+
+* Lesson progress updates
+* Course completion calculation
+* Enrollment validation before progress updates
+* Progress cannot move backwards
+* Course completion detection
+* Course completion notifications
+
+### Reviews
+
+* Course reviews and ratings
+* Review ownership validation
+* Rating validation
+
+### Redis
+
+Redis is used for:
+
+* Course caching
+* Notification caching
+* Cache invalidation
+
+### Background Processing
+
+BullMQ is used for asynchronous notification processing.
+
+Notification jobs include:
+
+* Retry support
+* Exponential backoff
+* Failed job handling
+* Worker logging
+* Completion and failure tracking
+
+### Security
+
+* Global request validation
+* JWT authentication
+* Role guards
+* Rate limiting
+* Helmet
+* CORS
+* Environment variable validation
+* No hardcoded secrets
 
 ## Architecture
 
-The application is intentionally modular rather than prematurely split into multiple deployables. Each domain is isolated into a NestJS module and communicates through services/repositories. Redis is used for caching and BullMQ-backed background notification jobs.
-
-Domains:
-
-- Auth
-- Users/Admin
-- Courses
-- Enrollments
-- Progress
-- Reviews
-- Notifications
-
-## Tech Stack
-
-Node.js, TypeScript, NestJS, PostgreSQL, Prisma, Redis, Docker, JWT, Swagger, Jest, GitHub Actions.
-
-## Project Structure
+The application uses a modular NestJS architecture.
 
 ```text
 src/
-  common/
-    decorators/
-    guards/
-    prisma.service.ts
-    redis.service.ts
-  modules/
-    auth/
-    courses/
-    enrollments/
-    progress/
-    reviews/
-    notifications/
-    users/
-prisma/
-test/
-.github/workflows/
+├── common/
+│   ├── decorators/
+│   ├── guards/
+│   ├── types/
+│   ├── prisma.service.ts
+│   └── redis.service.ts
+│
+├── config/
+│   └── env.validation.ts
+│
+├── modules/
+│   ├── auth/
+│   ├── courses/
+│   ├── enrollments/
+│   ├── notifications/
+│   ├── progress/
+│   ├── reviews/
+│   └── users/
+│
+└── main.ts
 ```
 
-## Database Design
+## Tech Stack
 
-Core relations:
+* Node.js
+* TypeScript
+* NestJS
+* PostgreSQL
+* Prisma ORM
+* Redis
+* BullMQ
+* JWT
+* Swagger / OpenAPI
+* Jest
+* Docker
+* Docker Compose
+* GitHub Actions
 
-- User -> Courses (instructor)
-- User -> Enrollments -> Course
-- Course -> Sections -> Lessons
-- User -> LessonProgress -> Lesson
-- User -> Review -> Course
-- User -> Notifications
-- User -> RefreshTokens
+## Requirements
 
-Indexes are included for common access patterns such as role/status, course publication, enrollment lookups and progress queries.
+Before running the project locally, make sure you have:
 
-## Getting Started
+* Node.js 20+
+* npm
+* PostgreSQL
+* Redis
+* Docker (optional if running PostgreSQL/Redis locally)
 
-### 1. Clone and install
+## Environment Variables
+
+Create a `.env` file based on `.env.example`.
+
+Example:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/elearning?schema=public"
+
+JWT_ACCESS_SECRET="replace-with-a-long-random-access-secret"
+JWT_REFRESH_SECRET="replace-with-a-long-random-refresh-secret"
+
+JWT_ACCESS_EXPIRES_IN="15m"
+JWT_REFRESH_EXPIRES_IN="7d"
+
+REDIS_URL="redis://localhost:6379"
+PORT=3000
+```
+
+Never commit `.env`.
+
+## Installation
+
+Install dependencies:
 
 ```bash
 npm install
-cp .env.example .env
 ```
 
-### 2. Run infrastructure
+Generate Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+Run database migrations:
+
+```bash
+npx prisma migrate dev
+```
+
+Seed the database:
+
+```bash
+npm run prisma:seed
+```
+
+## Running with Docker
+
+Start PostgreSQL and Redis:
 
 ```bash
 docker compose up -d postgres redis
 ```
 
-### 3. Generate Prisma client and migrate
-
-```bash
-npx prisma generate
-npx prisma migrate dev --name init
-npm run prisma:seed
-```
-
-### 4. Start the API
+Then run the application:
 
 ```bash
 npm run start:dev
 ```
 
-API: `http://localhost:3000/api`
+## Running the Application
 
-Swagger: `http://localhost:3000/docs`
-
-## Docker
-
-Run the complete stack:
+Development:
 
 ```bash
-docker compose up --build
+npm run start:dev
 ```
 
-The container entrypoint deploys committed migrations before starting the API.
-
-## Seed Accounts
-
-The seed creates local development accounts:
-
-- admin@example.com
-- instructor@example.com
-- student@example.com
-
-Password for all seed accounts: `Password123!`
-
-Use these credentials for local development only.
-
-## API Examples
-
-Register:
+Production build:
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"demo@example.com","firstName":"Demo","lastName":"User","password":"Password123!"}'
+npm run build
 ```
 
-Login:
+Production:
 
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"student@example.com","password":"Password123!"}'
+npm run start:prod
+```
+
+## API Documentation
+
+Swagger documentation is available at:
+
+```text
+http://localhost:3000/docs
 ```
 
 ## Testing
 
+Run unit tests:
+
 ```bash
 npm test
+```
+
+Run tests sequentially:
+
+```bash
+npx jest --runInBand
+```
+
+Run tests with coverage:
+
+```bash
 npm run test:cov
+```
+
+The current test suite covers critical flows including:
+
+* Authentication
+* Course access and ownership
+* Enrollment
+* Progress tracking
+* Notifications
+
+Current local verification:
+
+* 5 test suites passing
+* 10 tests passing
+* TypeScript build passing
+* ESLint passing
+
+## Code Quality
+
+Run ESLint:
+
+```bash
+npm run lint
+```
+
+Build the project:
+
+```bash
 npm run build
 ```
 
-For a full end-to-end test suite, run the database and Redis and then execute the e2e configuration in `test/`.
+## Database
 
-## Performance Notes
+Prisma is used as the ORM with PostgreSQL.
 
-The schema contains targeted indexes and the course list API uses pagination. Course details and notifications use Redis caching with invalidation on writes.
+The database contains entities for:
 
-No throughput, user-count, latency-improvement or delivery-success claims are included without reproducible benchmarks.
+* Users
+* Refresh tokens
+* Courses
+* Categories
+* Sections
+* Lessons
+* Enrollments
+* Lesson progress
+* Reviews
+* Notifications
+
+The schema includes relationships, unique constraints, and indexes designed around the application's query patterns.
+
+## CI
+
+GitHub Actions is configured to validate the project automatically.
+
+The CI pipeline is intended to run checks such as:
+
+* Dependency installation
+* TypeScript/build validation
+* Automated tests
+
+## Project Status
+
+This is a backend portfolio project focused on demonstrating practical backend engineering patterns, including:
+
+* Modular architecture
+* Authentication and authorization
+* Database design
+* Caching
+* Background processing
+* Transactional business workflows
+* Automated testing
+* Containerized local infrastructure
+
+Performance metrics and production-scale usage numbers are intentionally not claimed unless they have been measured through reproducible benchmarks.
 
 ## Future Improvements
 
-- Extract notification processing into a dedicated queue worker using BullMQ
-- Add object storage for course media
-- Add payment integration
-- Add advanced search
-- Add observability (OpenTelemetry + metrics)
-- Add complete e2e coverage
+Possible future improvements include:
+
+* Full end-to-end test coverage
+* Advanced search
+* Observability and metrics
+* Email notification adapters
+* File/media storage integration
+* Production deployment configuration
+* Advanced analytics
+* Payment integration
