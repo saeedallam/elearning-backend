@@ -10,7 +10,7 @@ import {
   Req,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CourseStatus, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { AuthenticatedRequest } from "../../common/types/authenticated-request";
 import { Public } from "../../common/decorators/public.decorator";
@@ -30,9 +30,8 @@ export class CoursesController {
     @Query("limit") limit?: number,
     @Query("search") search?: string,
     @Query("categoryId") categoryId?: string,
-    @Query("status") status?: CourseStatus,
   ) {
-    return this.service.list({ page, limit, search, categoryId, status });
+    return this.service.list({ page, limit, search, categoryId });
   }
   @Public() @Get(":id") one(@Param("id") id: string) {
     return this.service.findOne(id);

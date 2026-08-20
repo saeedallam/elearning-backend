@@ -60,18 +60,43 @@ export class CoursesService {
     return course;
   }
 
-  async list(params: { page?: number; limit?: number; search?: string; categoryId?: string; status?: CourseStatus }) {
-    const page = Math.max(1, params.page ?? 1), limit = Math.min(50, Math.max(1, params.limit ?? 12));
+  async list(params: { page?: number; limit?: number; search?: string; categoryId?: string }) {
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(50, Math.max(1, params.limit ?? 12));
+
     const where = {
-      ...(params.status ? { status: params.status } : { status: CourseStatus.PUBLISHED }),
+      status: CourseStatus.PUBLISHED,
       ...(params.categoryId ? { categoryId: params.categoryId } : {}),
-      ...(params.search ? { title: { contains: params.search, mode: 'insensitive' as const } } : {}),
+      ...(params.search
+        ? { title: { contains: params.search, mode: 'insensitive' as const } }
+        : {}),
     };
+
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.course.findMany({ where, include: { category: true, instructor: { select: { id: true, firstName: true, lastName: true } } }, orderBy: { createdAt: 'desc' }, skip: (page - 1) * limit, take: limit }),
+      this.prisma.course.findMany({
+        where,
+        include: {
+          category: true,
+          instructor: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
       this.prisma.course.count({ where }),
     ]);
-    return { items, meta: { page, limit, total, pages: Math.ceil(total / limit) } };
+
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async createSection(courseId: string, user: { id: string; role: Role }, dto: CreateSectionDto) { await this.assertOwner(courseId, user); return this.prisma.section.create({ data: { courseId, ...dto } }); }

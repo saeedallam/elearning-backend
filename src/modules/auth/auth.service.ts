@@ -3,7 +3,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
+import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import { Role } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 import { createHash } from "crypto";
@@ -95,14 +95,14 @@ export class AuthService {
       { sub: userId, email, role },
       {
         secret: process.env.JWT_ACCESS_SECRET ?? "local-access",
-        expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m",
+        expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN ?? "15m") as JwtSignOptions["expiresIn"],
       },
     );
     const refreshToken = await this.jwt.signAsync(
       { sub: userId, type: "refresh" },
       {
         secret: process.env.JWT_REFRESH_SECRET ?? "local-refresh",
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d",
+        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? "7d") as JwtSignOptions["expiresIn"],
       },
     );
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
